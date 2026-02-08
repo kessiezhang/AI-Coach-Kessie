@@ -21,6 +21,26 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Sync Streamlit Cloud secrets to env (so rag.py's os.getenv works)
+if hasattr(st, "secrets"):
+    for key in ("OPENAI_API_KEY", "NOTION_API_KEY", "NOTION_PAGE_IDS"):
+        if key in st.secrets and st.secrets.get(key):
+            os.environ[key] = str(st.secrets[key])
+
+# Validate: OpenAI key should start with sk- (catches accidental swap with Notion key)
+_openai = os.getenv("OPENAI_API_KEY", "")
+if _openai and not _openai.startswith("sk-"):
+    st.error(
+        "**API key error:** `OPENAI_API_KEY` should be your **OpenAI** key (starts with `sk-`), "
+        "not your Notion key. In Streamlit Cloud → Manage app → Secrets, ensure OPENAI_API_KEY has the key from platform.openai.com"
+    )
+
+# Catch auth config errors and show a helpful message
+try:
+    from streamlit.errors import StreamlitAuthError
+except ImportError:
+    StreamlitAuthError = Exception  # fallback for older streamlit
+
 # Design tokens
 COLORS = {
     "cream": "#f8f6f3",
@@ -248,4 +268,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except StreamlitAuthError:
+        st.error(
+            "**Auth configuration error.** Add secrets in Streamlit Cloud (Manage app → Settings → Secrets). "
+            "`redirect_uri` must match your app URL, e.g. `https://yourapp.streamlit.app/oauth2callback`. "
+            "See DEPLOY.md for full setup."
+        )
