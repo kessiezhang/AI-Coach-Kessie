@@ -1,0 +1,4 @@
+# Paid members (unlimited prompts). Add email to this list.
+# Format: email: true
+members:
+  # your@email.com: true  # uncomment when paid
